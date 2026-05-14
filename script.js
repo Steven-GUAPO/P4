@@ -6,6 +6,8 @@ const theTimer = document.querySelector('.timer');
 const wpmDisplay = document.querySelector('#wpm');
 const errorCountDisplay = document.querySelector('#error-count');
 const scoreList = document.querySelector('#score-list');
+const countdownOverlay = document.querySelector('#countdown-overlay');
+const countdownText = document.querySelector('.countdown-text');
 
 const PARAGRAPHS = [
     'Typing is a useful skill, and practice makes the process faster and smoother every day.',
@@ -21,6 +23,7 @@ let timerRunning = false;
 let errors = 0;
 let currentParagraph = '';
 let lastInputWasError = false;
+let isTestActive = false;
 
 function leadingZero(time) {
     return time <= 9 ? `0${time}` : time;
@@ -143,7 +146,67 @@ function updateErrorCount() {
     errorCountDisplay.textContent = errors;
 }
 
+function startCountdown() {
+    countdownOverlay.classList.add('show');
+    countdownText.textContent = '3';
+    let count = 3;
+
+    const countdownInterval = setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+            countdownText.textContent = count.toString();
+        } else if (count === 0) {
+            countdownText.textContent = 'Go!';
+        } else {
+            clearInterval(countdownInterval);
+            countdownOverlay.classList.remove('show');
+            animateText();
+        }
+    }, 1000);
+}
+
+function animateText() {
+    originTextElement.textContent = '';
+    let index = 0;
+
+    const typeInterval = setInterval(() => {
+        if (index < currentParagraph.length) {
+            originTextElement.textContent += currentParagraph[index];
+            index += 1;
+        } else {
+            clearInterval(typeInterval);
+            enableTyping();
+        }
+    }, 50);
+}
+
+function enableTyping() {
+    testArea.disabled = false;
+    testArea.focus();
+    isTestActive = true;
+}
+
+function disableTyping() {
+    testArea.disabled = true;
+    isTestActive = false;
+}
+
+function resetTest() {
+    resetTimer();
+    testArea.value = '';
+    errors = 0;
+    updateErrorCount();
+    updateWPM();
+    setBorderColor('grey');
+    lastInputWasError = false;
+    disableTyping();
+    setOriginText();
+    startCountdown();
+}
+
 function spellCheck() {
+    if (!isTestActive) return;
+
     const enteredText = testArea.value;
     const origin = currentParagraph;
 
@@ -186,20 +249,11 @@ function spellCheck() {
     }
 }
 
-function resetTest() {
-    resetTimer();
-    testArea.value = '';
-    errors = 0;
-    updateErrorCount();
-    updateWPM();
-    setBorderColor('grey');
-    lastInputWasError = false;
-    setOriginText();
-}
-
 window.addEventListener('load', () => {
+    disableTyping();
     setOriginText();
     displayTopScores();
+    startCountdown();
 });
 
 testArea.addEventListener('input', spellCheck);
